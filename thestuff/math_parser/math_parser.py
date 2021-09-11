@@ -15,6 +15,8 @@ tests = [
 
 class m_ex:
     stack = []
+    def __str__(self):
+        return str(self.stack)
     def __init__(self, expression):
         self.stack = []
         self.history_num = []
@@ -37,7 +39,6 @@ class m_ex:
             if self.is_dot(char):
                 self.stack[-1] = self.stack[-1] + char
                 self.history_dot.append(len(self.stack))
-        print(self.stack)
     def is_implicit_mult(self, num):
         if self.is_number(self.stack[-1]) == 0:
             return False
