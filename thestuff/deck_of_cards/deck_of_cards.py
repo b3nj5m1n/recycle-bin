@@ -120,15 +120,22 @@ class DeckOfCards():
         return '.'.join([str(card) for card in self.cards])
     def cut(self):
         """Cut the deck at a random point in the middle third of the deck"""
-        self.cards = [0, 1]
         i = random.randint(math.floor(len(self.cards)*(1/3)), math.ceil(len(self.cards)*(2/3)))
         self.cards = self.cards[i:] + self.cards[:i]
-    def shuffle(self):
+    def riffle_shuffle(self):
         """Simulate an imperfect riffle shuffle"""
         stacks = [[],[]]
         for card in self.cards:
             stacks[random.randint(0,1)].append(card)
         self.cards = stacks[0] + stacks[1]
+    def wash(self):
+        random.shuffle(self.cards)
+    def shuffle(self):
+        """Imitates casino procedure (except for the strip cut)"""
+        self.wash()
+        for _ in range(4):
+            self.riffle_shuffle()
+        self.cut()
 
 if __name__ == '__main__':
     cards = [
