@@ -29,18 +29,20 @@ def move(player):
     a = turtle.numinput("", "Right turn (degrees)", 0)
     c = turtle.numinput("", "Distance", 0)
     
-    ortsvektor = vector2(player.xcor(), player.ycor())
+    ortsvektor = vector2(player.xcor() + 0.0000000000000001, player.ycor() + 0.0000000000000001)
     player.right(a)
     player.forward(c)
-    richtungsvektor = vector2(player.xcor() - ortsvektor.x, player.ycor() - ortsvektor.y)
+    richtungsvektor = vector2((player.xcor() - ortsvektor.x) + 0.0000000000000001, (player.ycor() - ortsvektor.y) + 0.0000000000000001)
     gerade = vector2_line(ortsvektor, richtungsvektor)
 
     if richtungsvektor.x == 0 and richtungsvektor.y == 0:
         return
 
-    for line in vektoren:
+    for i, line in enumerate(vektoren):
+        print(f"Checking against move {i}")
         ints = gerade.intersects(line)
-        if not ints == False:
+        print(ints)
+        if ints != False:
             draw_dot(ints)
     
     vektoren.append(gerade)

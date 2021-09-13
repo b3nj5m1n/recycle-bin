@@ -55,6 +55,17 @@ class les:
     def __insert_s(self):
         self.v2.directional_vector.x *= self.s_val
         self.r_val = self.v2.positional_vector.x + self.v2.directional_vector.x
+    def is_parallel(self):
+        if self.v1.directional_vector.x == self.v2.directional_vector.x and self.v1.directional_vector.y == self.v2.directional_vector.y:
+            # print("Is parallel")
+            return True
+        f_x = self.v1.directional_vector.x / self.v2.directional_vector.x
+        f_y = self.v1.directional_vector.y / self.v2.directional_vector.y
+        if f_x == f_y:
+            print("Is parallel")
+            return True
+        print("Is not parallel")
+        return False
     def solve(self):
         self.__solve_for_r()
         self.__insert_r()
@@ -72,11 +83,22 @@ class vector2_line:
         return self.positional_vector + (factor * self.directional_vector)
     def intersects(self, line: vector2_line):
         self.les = les(self, line)
+        if self.les.is_parallel(): return False
         r, s = self.les.solve()
+        print(f"r = {r}, s = {s}")
+        if not 0 <= r <= 1:
+            print(f"0 <= r <= 1 is false")
+            return False
+        if not 0 <= s <= 1:
+            print(f"0 <= s <= 1 is false")
+            return False
         p1 = self.positional_vector + (self.directional_vector * r)
         p2 = line.positional_vector + (line.directional_vector * s)
-        if isclose(p1.x, p2.x) and isclose(p1.y, p2.y):
+        print(f"Point 1: {p1}, Point 2: {p2}")
+        if isclose(p1.x, p2.x, abs_tol=0.001) and isclose(p1.y, p2.y, abs_tol=0.001):
+            print(f"Points are close enough for collision")
             return p1
+        print(f"Points are not close enough for collision")
         return False
 
 if __name__ == "__main__":
