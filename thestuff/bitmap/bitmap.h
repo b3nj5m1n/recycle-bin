@@ -16,40 +16,41 @@
 
 template <class T> class Pixel {
 private:
-  T red;
-  T green;
-  T blue;
+  T rgb[3];
+  void set_rgb(T r, T g, T b) {
+    // These need to be reversed because it needs to be little-endian
+    this->rgb[0] = b;
+    this->rgb[1] = g;
+    this->rgb[2] = r;
+  }
 
 public:
-  Pixel() {
-    this->red = 0;
-    this->green = 0;
-    this->blue = 0;
-  }
-  Pixel(T red, T green, T blue) {
-    this->red = red;
-    this->green = green;
-    this->blue = blue;
-  }
+  Pixel() { this->set_rgb(0, 0, 0); }
+  Pixel(T red, T green, T blue) { this->set_rgb(red, green, blue); }
+  T *get_rgb() { return this->rgb; }
 };
 
 class PixelMap {
 private:
-  std::vector<Pixel<uint16_t>> pixels;
+  std::vector<Pixel<uint8_t>> pixels;
   int width;
   int height;
-  int row_size;
 
 public:
   PixelMap() {}
-  PixelMap(int width, int height, int row_size) {
+  void init(int width, int height) {
     this->width = width;
     this->height = height;
-    this->row_size = row_size;
-    this->pixels = std::vector<Pixel<uint16_t>>(this->height * this->row_size,
-                                                Pixel<uint16_t>());
+    this->pixels = std::vector<Pixel<uint8_t>>(this->width * this->height,
+                                               Pixel<uint8_t>());
   }
-  std::vector<Pixel<uint16_t>> get_pixel_map() { return this->pixels; }
+  std::vector<Pixel<uint8_t>> get_pixel_map() { return this->pixels; }
+  void set_pixel(int x, int y, Pixel<uint8_t> color) {
+    this->pixels.at((y * this->height) + x) = color;
+  }
+  Pixel<uint8_t> get_pixel(int x, int y) {
+    return this->pixels.at((y * this->height) + x);
+  }
 };
 
 struct BITMAPFILEHEADER {
@@ -87,6 +88,7 @@ private:
   int height;
   int bits_per_pixel;
   int row_size;
+  int padding;
   BITMAPFILEHEADER header_file;
   BITMAPINFOHEADER header_info;
   PixelMap pixel_map;
@@ -96,10 +98,12 @@ public:
     this->width = width;
     this->height = height;
     this->bits_per_pixel = bits_per_pixel;
-    this->row_size = ceil((this->bits_per_pixel * this->width) / 32) * 4;
+    this->row_size =
+        ceil(((double)this->bits_per_pixel * (double)this->width) / 32) * 4;
+    this->padding = this->row_size % this->bits_per_pixel;
     this->header_file = this->get_header_file();
     this->header_info = this->get_header_info();
-    this->pixel_map = PixelMap(this->width, this->height, this->row_size);
+    this->pixel_map.init(this->width, this->height);
   }
 
   BITMAPFILEHEADER get_header_file() {
@@ -127,6 +131,10 @@ public:
     return result;
   }
 
+  void set_pixel(int x, int y, Pixel<uint8_t> color) {
+    this->pixel_map.set_pixel(x, y, color);
+  }
+
   int write(std::string filename) {
     FILE *file = std::fopen(filename.c_str(), "wb");
     // File Header
@@ -147,8 +155,18 @@ public:
     std::fwrite(&this->header_info.resolution_ver, 4, 1, file);
     std::fwrite(&this->header_info.num_colors, 4, 1, file);
     std::fwrite(&this->header_info.num_i_colors, 4, 1, file);
-    for (auto i : this->pixel_map.get_pixel_map()) {
-      std::fwrite(&i, sizeof(i), 1, file);
+    for (int y = 0; y < this->height; y++) {
+      int bits_written = 0;
+      for (int x = 0; x < this->width; x++) {
+        Pixel<uint8_t> p = this->pixel_map.get_pixel(x, y);
+        int size = sizeof(*p.get_rgb());
+        std::fwrite(p.get_rgb(), size * 3, 1, file);
+        bits_written += size * 8 * 3;
+      }
+      bool padding = false;
+      for (int i = 0; i < bits_written % 4; i++) {
+        std::fwrite(&padding, 1, 1, file);
+      }
     }
     fclose(file);
     return 0;
