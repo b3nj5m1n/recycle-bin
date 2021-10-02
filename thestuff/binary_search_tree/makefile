@@ -1,5 +1,5 @@
  
-CC = g++
+CC = clang++
 
 CFLAGS_CMN = -std=c++20
 CFLAGS = -Wall -g $(CFLAGS_CMN)

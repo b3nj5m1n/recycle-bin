@@ -1,6 +1,10 @@
 #include "bitmap.h"
 #include <iostream>
 
+// Something is really wrong here, when you change the height on the gradient or
+// pride flag test the image is very much fucked, I'm not sure whether the issue
+// is in the bitmap lib or the test code though
+
 void test_spectrum_ish() {
   int width = 256;
   int height = 256;
@@ -13,13 +17,13 @@ void test_spectrum_ish() {
   test.write("./spectrum_ish.bmp");
 }
 void test_pride_flag() {
-  int width = 6;
+  int width = 150;
   int height = 1;
   Bitmap test(width, height, 24);
   Pixel<uint8_t> colors[6] = {
-      Pixel<uint8_t>(255, 0, 24),  Pixel<uint8_t>(255, 165, 44),
+      Pixel<uint8_t>(255, 0, 24),   Pixel<uint8_t>(255, 165, 44),
       Pixel<uint8_t>(255, 255, 65), Pixel<uint8_t>(0, 128, 24),
-      Pixel<uint8_t>(0, 0, 249),  Pixel<uint8_t>(134, 0, 125),
+      Pixel<uint8_t>(0, 0, 249),    Pixel<uint8_t>(134, 0, 125),
   };
   int ratio = ceil(width / 6.0);
   for (int y = 0; y < height; y++) {
@@ -45,9 +49,29 @@ void test_chess_board() {
   }
   test.write("./chess_board.bmp");
 }
+void test_gradient() {
+  int width = 1920;
+  int height = 1;
+  uint8_t r1 = 255, g1 = 0, b1 = 102;
+  uint8_t r2 = 0, g2 = 255, b2 = 102;
+  Bitmap test(width, height, 24);
+  for (int x = 0; x < width; x++) {
+    uint8_t r = r1 * ((double)x / width) + r2 * (1 - ((double)x / width));
+    uint8_t g = g1 * ((double)x / width) + g2 * (1 - ((double)x / width));
+    uint8_t b = b1 * ((double)x / width) + b2 * (1 - ((double)x / width));
+    std::cout << static_cast<uint16_t>(r) << ", " << static_cast<uint16_t>(g)
+              << ", " << static_cast<uint16_t>(b) << std::endl;
+    Pixel<uint8_t> color(r, g, b);
+    for (int y = 0; y < height; y++) {
+      test.set_pixel(x, y, color);
+    }
+  }
+  test.write("./gradient.bmp");
+}
 
 int main(int argc, char *argv[]) {
   test_spectrum_ish();
   test_chess_board();
   test_pride_flag();
+  test_gradient();
 }
