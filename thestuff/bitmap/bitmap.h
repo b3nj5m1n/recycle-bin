@@ -27,6 +27,11 @@ private:
 public:
   Pixel() { this->set_rgb(0, 0, 0); }
   Pixel(T red, T green, T blue) { this->set_rgb(red, green, blue); }
+  Pixel(const Pixel &obj) {
+      rgb[0] = obj.rgb[0];
+      rgb[1] = obj.rgb[1];
+      rgb[2] = obj.rgb[2];
+    }
   T *get_rgb() { return this->rgb; }
 };
 
@@ -46,10 +51,12 @@ public:
   }
   std::vector<Pixel<uint8_t>> get_pixel_map() { return this->pixels; }
   void set_pixel(int x, int y, Pixel<uint8_t> color) {
-    this->pixels.at((y * this->height) + x) = color;
+    int index = (y * this->width) + x;
+    this->pixels.at(index) = color;
   }
   Pixel<uint8_t> get_pixel(int x, int y) {
-    return this->pixels.at((y * this->height) + x);
+    int index = (y * this->width) + x;
+    return this->pixels.at(index);
   }
 };
 
@@ -156,15 +163,15 @@ public:
     std::fwrite(&this->header_info.num_colors, 4, 1, file);
     std::fwrite(&this->header_info.num_i_colors, 4, 1, file);
     for (int y = 0; y < this->height; y++) {
-      int bits_written = 0;
+      int bytes_written = 0;
       for (int x = 0; x < this->width; x++) {
         Pixel<uint8_t> p = this->pixel_map.get_pixel(x, y);
         int size = sizeof(*p.get_rgb());
         std::fwrite(p.get_rgb(), size * 3, 1, file);
-        bits_written += size * 8 * 3;
+        bytes_written += size * 3;
       }
       bool padding = false;
-      for (int i = 0; i < bits_written % 4; i++) {
+      for (int i = 0; i < row_size-bytes_written; i++) {
         std::fwrite(&padding, 1, 1, file);
       }
     }
