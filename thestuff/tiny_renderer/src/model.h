@@ -87,6 +87,27 @@ public:
   }
   std::vector<Face> get_faces() { return this->faces; }
   Vertex get_vertex_at(int index) { return this->vertices.at(index - 1); }
+  void flatten_0_1() {
+    // Transform each vertex coordinate to be between 0 and 1
+    double min = this->vertices[0].x;
+    double max = this->vertices[0].x;
+    for (auto vertex : this->vertices) {
+      for (auto num : {vertex.x, vertex.y, vertex.z}) {
+        if (num > max) {
+          max = num;
+        }
+        if (num < min) {
+          min = num;
+        }
+      }
+    }
+    for (int i = 0; i < this->vertices.size(); i++) {
+      Vertex *vertex = &this->vertices[i];
+      vertex->x = (vertex->x - min) / (max - min);
+      vertex->y = (vertex->y - min) / (max - min);
+      vertex->z = (vertex->z - min) / (max - min);
+    }
+  }
   const std::vector<std::string> split_line(std::string *line,
                                             std::string delimiter) {
     std::vector<std::string> result;
@@ -122,8 +143,8 @@ public:
     for (int i = 1; i < line.size(); i++) {
       // Split the line by /
       std::vector<std::string> list = this->split_line(&line[i], "/");
-      face_list.push_back(
-          FaceList(this->stoi(list[0]), this->stoi(list[1]), this->stoi(list[2])));
+      face_list.push_back(FaceList(this->stoi(list[0]), this->stoi(list[1]),
+                                   this->stoi(list[2])));
     }
     // Create new face
     this->faces.push_back(Face(face_list[0], face_list[1], face_list[2]));

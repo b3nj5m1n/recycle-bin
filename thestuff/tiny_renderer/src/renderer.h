@@ -28,8 +28,8 @@ struct Point {
     this->z = z;
   }
   Point(Vertex vertex, int width, int height) {
-    this->x = (vertex.x + 1) * ( width-1 ) / 2;
-    this->y = (vertex.y + 1) * ( height-1 ) / 2;
+    this->x = (vertex.x) * ( width-1 );
+    this->y = (vertex.y) * ( height-1 );
     this->z = vertex.z;
   }
   friend std::ostream &operator<<(std::ostream &os, const Point &obj) {
