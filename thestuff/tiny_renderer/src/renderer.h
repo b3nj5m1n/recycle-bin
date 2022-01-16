@@ -14,6 +14,28 @@ struct Color {
     this->green = green;
     this->blue = blue;
   }
+  friend std::ostream &operator<<(std::ostream &os, const Color &obj) {
+    os << "rgb(" << obj.red << ", " << obj.green << ", " << obj.blue << ")";
+    return os;
+  }
+};
+
+struct Point {
+  int x, y, z;
+  Point(int x, int y, int z) {
+    this->x = x;
+    this->y = y;
+    this->z = z;
+  }
+  Point(Vertex vertex, int width, int height) {
+    this->x = (vertex.x) * ( width-1 );
+    this->y = (vertex.y) * ( height-1 );
+    this->z = vertex.z;
+  }
+  friend std::ostream &operator<<(std::ostream &os, const Point &obj) {
+    os << "(" << obj.x << "|" << obj.y << "|" << obj.z << ")";
+    return os;
+  }
 };
 
 struct RendererConfig {
@@ -37,9 +59,6 @@ public:
       : bitmap(width, height, 24), config(width, height, output_filename) {}
   void render() { this->bitmap.write(this->config.output_filename); }
   void draw_pixel(int x, int y, Color color) {
-    // Because bitmaps are constructed bottom up, this puts the origin at the
-    // top-left
-    y = (this->config.height - (y)) - 1;
     this->bitmap.set_pixel(x, y,
                            Pixel<uint8_t>(color.red, color.green, color.blue));
   }
@@ -65,21 +84,26 @@ public:
       }
     }
   }
-  void draw_line_vertex(Vertex vertex0, Vertex vertex1, Color color) {
-    int x0 = (vertex0.x+1) * this->config.width / 4.;
-    int y0 = (vertex0.y+1) * this->config.height / 4.;
-    int x1 = (vertex1.x+1) * this->config.width / 4.;
-    int y1 = (vertex1.y+1) * this->config.height / 4.;
-        std::cout << "From " << x0 << ", " << y0 << " to " << x1 << ", " << y1 << std::endl;
-    this->draw_line(x0, y0, x1, y1, color);
+  void draw_line(Point p1, Point p2, Color color) {
+    this->draw_line(p1.x, p1.y, p2.x, p2.y, color);
+  }
+  void draw_face(Face face, Model model, Color color) {
+    Point points[3] = {
+        Point(model.get_vertex_at(face.l1.vertex), this->config.width,
+              this->config.height),
+        Point(model.get_vertex_at(face.l2.vertex), this->config.width,
+              this->config.height),
+        Point(model.get_vertex_at(face.l3.vertex), this->config.width,
+              this->config.height),
+    };
+    this->draw_line(points[0], points[1], color);
+    this->draw_line(points[1], points[2], color);
+    this->draw_line(points[2], points[0], color);
   }
   void draw_wireframe(Model model, Color color) {
     // Loop over faces
     for (auto face : model.get_faces()) {
-      Vertex vertex0 = model.get_vertex_at(face.vertex1);
-      Vertex vertex1 = model.get_vertex_at(face.vertex2);
-      Vertex vertex2 = model.get_vertex_at(face.vertex3);
-      this->draw_line_vertex(vertex0, vertex1, color);
+      this->draw_face(face, model, color);
     }
   }
 };

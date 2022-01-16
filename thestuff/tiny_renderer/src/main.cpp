@@ -3,8 +3,9 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-  Renderer renderer(500, 500, "./bin/test_render.bm");
+  Renderer renderer(2000, 2000, "./bin/test_render.bm");
   Model model("./assets/african_head.obj");
-  renderer.draw_wireframe(model, Color(0, 0, 255));
+  model.flatten_0_1();
+  renderer.draw_wireframe(model, Color(255, 0, 102));
   renderer.render();
 }
