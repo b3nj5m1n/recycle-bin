@@ -28,7 +28,7 @@ class Mode(ABC):
     def new(self):
         self.i += 1
         self.current = self.rnd.random()
-        self.time_generated = datetime.now()
+        self.time_memo_started = datetime.now()
         pass
     @abstractmethod
     def get_prompt(self):
@@ -87,6 +87,8 @@ print("Press any key when you're done memorizing.\n")
 
 while True:
     print("\n" * 2)
+    print("Press any key to start memo.\n")
+    os.system('read -s -n 1')
     generator.new()
     print(generator.get_prompt(), end='\r')
     os.system('read -s -n 1')
