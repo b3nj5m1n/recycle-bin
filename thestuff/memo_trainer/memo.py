@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from math import ceil
 from prettytable import PrettyTable
+from sty import fg, bg, ef, rs
 import argparse
 import humanize
 import os
@@ -99,12 +100,16 @@ modes = {
 
 generator = modes[args.mode](args.length_min, args.length_max)
 
-print("Press any key when you're done memorizing.\n")
-
 class ErasablePrint():
     def print(self, text):
         self.text = text
         print(text)
+    # Start and End are for escape codes
+    def pretty_print(self, text, start, end):
+        self.text = text
+        print(start, end='')
+        print(text, end='')
+        print(end)
     def erase(self):
         columns, lines = shutil.get_terminal_size()
         length = len(self.text)
@@ -131,28 +136,38 @@ def wait_for_any_key():
                 termios.tcsetattr(fd, termios.TCSADRAIN, old)
     getch()
 
+prompts = {
+    "start_memo": ("Press any key to start memo.", fg(255, 150, 50) + bg(32, 32, 32), rs.all),
+    "stop_memo": ("Press any key when you're done memorizing.\n\n", fg(50, 155, 255) + bg(32, 32, 32) + ef.bold, rs.all),
+    "start_recall": ("Press any key to start recall.\n", fg(50, 255, 150) + bg(32, 32, 32), rs.all),
+    "enter_answer": (fg(150, 50, 255) + bg(32, 32, 32) + "Enter your answer:" + rs.all + "\n\n" + fg(99, 50, 255) + "> " + rs.all + ef.bold),
+    "correct": (rs.all + fg(0, 255, 128) + "Correct" + rs.all),
+    "incorrect": (rs.all + fg(255, 77, 77) + "The correct answer would have been:" + rs.all + ef.bold),
+    "seperator": (rs.all + "\n" + ef.underl + fg(22, 22, 22) + " " * shutil.get_terminal_size().columns + rs.all),
+}
 
 ep = ErasablePrint()
 while True:
-    print("\n" * 2)
-    ep.print("Press any key to start memo.\n")
+    print("\n")
+    ep.pretty_print(*prompts["start_memo"])
     wait_for_any_key()
     ep.erase()
     generator.new()
-    ep.print(generator.get_prompt())
+    ep.pretty_print(prompts["stop_memo"][0] + generator.get_prompt(), prompts["stop_memo"][1], prompts["stop_memo"][2])
     wait_for_any_key()
     ep.erase()
     generator.finish_memo()
-    ep.print("Press any key to start recall.\n")
+    ep.pretty_print(*prompts["start_recall"])
     wait_for_any_key()
     ep.erase()
     generator.start_recall()
-    prompt = "Enter your answer"
-    space = ''.join([" " for _ in  range(len(generator.get_answer()) - len("Enter your answer:"))])
-    answer = input(f"{prompt}:{space}\n> ")
+    answer = input(f"{prompts['enter_answer']}")
     generator.finish_recall()
+    print("\n")
     if generator.check_answer(answer):
-        print("Correct")
+        print(prompts["correct"])
     else:
-        print(f"The correct answer would have been: {generator.get_answer()}")
+        print(f"{prompts['incorrect']} {generator.get_answer()}")
+    print(rs.all)
     print(generator.stats())
+    print(prompts["seperator"])
