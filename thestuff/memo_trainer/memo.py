@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from difflib import SequenceMatcher
 from math import ceil
 from prettytable import PrettyTable
 from sty import fg, bg, ef, rs
@@ -15,6 +16,10 @@ parser.add_argument("-m", "--mode", required=True, type=str)
 parser.add_argument("-i", "--length-min", required=True, type=int)
 parser.add_argument("-x", "--length-max", required=True, type=int)
 args = parser.parse_args()
+
+def sanatize_answer(string):
+    table = string.maketrans('', '', ' \n\t\r')
+    return string.strip().lower().translate(table)
 
 class Mode(ABC):
     @abstractmethod
@@ -74,9 +79,8 @@ class ModeFromCharList(Mode):
         return self.get_prompt()
     def check_answer(self, answer):
         super().check_answer(self)
-        table = answer.maketrans('', '', ' \n\t\r')
-        answer = answer.strip().lower().translate(table)
-        correct = self.get_answer().strip().lower().translate(table)
+        answer = sanatize_answer(answer)
+        correct = sanatize_answer(self.get_answer())
         if not len(answer) == len(correct):
             return False
         for pair in zip(answer, correct):
@@ -136,13 +140,28 @@ def wait_for_any_key():
                 termios.tcsetattr(fd, termios.TCSADRAIN, old)
     getch()
 
+
+def diff_answer(ground_truth, user_answer):
+    result = ""
+    ground_truth = sanatize_answer(ground_truth)
+    user_answer = sanatize_answer(user_answer)
+    matcher = SequenceMatcher(None, ground_truth, user_answer)
+    for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
+        if opcode == "equal":
+            result += ef.bold + ground_truth[a0:a1] + rs.all
+        if opcode == "insert":
+            result += ef.bold + bg.green + user_answer[b0:b1] + rs.all
+        elif opcode == "delete":
+            result += ef.bold + bg.red + ground_truth[a0:a1] + rs.all
+    return result
+
 prompts = {
     "start_memo": ("Press any key to start memo.", fg(255, 150, 50) + bg(32, 32, 32), rs.all),
     "stop_memo": ("Press any key when you're done memorizing.\n\n", fg(50, 155, 255) + bg(32, 32, 32) + ef.bold, rs.all),
     "start_recall": ("Press any key to start recall.\n", fg(50, 255, 150) + bg(32, 32, 32), rs.all),
     "enter_answer": (fg(150, 50, 255) + bg(32, 32, 32) + "Enter your answer:" + rs.all + "\n\n" + fg(99, 50, 255) + "> " + rs.all + ef.bold),
     "correct": (rs.all + fg(0, 255, 128) + "Correct" + rs.all),
-    "incorrect": (rs.all + fg(255, 77, 77) + "The correct answer would have been:" + rs.all + ef.bold),
+    "incorrect": (rs.all + fg(255, 77, 77) + "Incorrect:\n" + rs.all),
     "seperator": (rs.all + "\n" + ef.underl + fg(22, 22, 22) + " " * shutil.get_terminal_size().columns + rs.all),
 }
 
@@ -167,7 +186,7 @@ while True:
     if generator.check_answer(answer):
         print(prompts["correct"])
     else:
-        print(f"{prompts['incorrect']} {generator.get_answer()}")
+        print(f"{prompts['incorrect']} {diff_answer(generator.get_answer(), answer)}")
     print(rs.all)
     print(generator.stats())
     print(prompts["seperator"])
