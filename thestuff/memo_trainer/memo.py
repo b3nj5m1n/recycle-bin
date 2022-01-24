@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
+from math import ceil
 from prettytable import PrettyTable
 import argparse
 import humanize
 import os
 import random
+import shutil
 import string
 
 parser = argparse.ArgumentParser()
@@ -52,15 +54,16 @@ class Mode(ABC):
         ])
         return pt.get_string()
 
-class ModeLetters(Mode):
-    def __init__(self, *args):
+class ModeFromCharList(Mode):
+    def __init__(self, char_list, *args):
         super().__init__(*args)
+        self.char_list = char_list
     def get_prompt(self):
-        letters = []
+        result = []
         g = random.Random(self.current)
         for i in range(g.choice(range(self.length_min, self.length_max + 1))):
-            letters.append(g.choice(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']))
-        return ' '.join(letters).upper()
+            result.append(g.choice(self.char_list))
+        return ' '.join(result).upper()
     def get_answer(self):
         return self.get_prompt()
     def check_answer(self, answer):
@@ -75,23 +78,44 @@ class ModeLetters(Mode):
                 return False
         return True
 
+class ModeLetters(ModeFromCharList):
+    def __init__(self, *args):
+        super().__init__(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'], *args)
+
+class ModeNumbers(ModeFromCharList):
+    def __init__(self, *args):
+        super().__init__(['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], *args)
 
 
 modes = {
-    "letters": ModeLetters
+    "letters": ModeLetters,
+    "numbers": ModeNumbers,
 }
 
 generator = modes[args.mode](args.length_min, args.length_max)
 
 print("Press any key when you're done memorizing.\n")
 
+class ErasablePrint():
+    def print(self, text):
+        self.text = text
+        print(text)
+    def erase(self):
+        columns, lines = shutil.get_terminal_size()
+        length = len(self.text)
+        for _ in range(ceil(length/columns)):
+            print("\r\033[F", end='')
+            print("" * columns, end='')
+
+ep = ErasablePrint()
 while True:
     print("\n" * 2)
     print("Press any key to start memo.\n")
     os.system('read -s -n 1')
     generator.new()
-    print(generator.get_prompt(), end='\r')
+    ep.print(generator.get_prompt())
     os.system('read -s -n 1')
+    ep.erase()
     generator.finish_memo()
     prompt = "Enter your answer"
     space = ''.join([" " for _ in  range(len(generator.get_answer()) - len("Enter your answer:"))])
