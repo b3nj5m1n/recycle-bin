@@ -9,17 +9,42 @@ import humanize
 import os
 import random
 import shutil
+import signal
+import sqlite3
 import string
+import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--mode", required=True, type=str)
 parser.add_argument("-i", "--length-min", required=True, type=int)
 parser.add_argument("-x", "--length-max", required=True, type=int)
+parser.add_argument("-d", "--database", required=False, type=str, default='./data.db')
 args = parser.parse_args()
 
 def sanatize_answer(string):
     table = string.maketrans('', '', ' \n\t\r')
     return string.strip().lower().translate(table)
+
+def get_db_conn():
+    return sqlite3.connect(args.database)
+
+def init_db():
+    conn = get_db_conn()
+    conn.execute('''CREATE TABLE IF NOT EXISTS memos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT,
+    time_memo_started BIG INT,
+    time_memo_finished BIG INT,
+    time_recall_started BIG INT,
+    time_recall_finished BIG INT,
+    i INT,
+    mode TEXT,
+    question TEXT,
+    answer TEXT,
+    correct BOOLEAN NOT NULL CHECK (correct IN (0, 1))
+    );''')
+    conn.commit()
+    conn.close()
 
 class Mode(ABC):
     @abstractmethod
@@ -34,6 +59,7 @@ class Mode(ABC):
         self.time_memo_finished = None
         self.time_recall_started = None
         self.time_recall_finished = None
+        self.answer = None
     def new(self):
         self.i += 1
         self.current = self.rnd.random()
@@ -48,7 +74,15 @@ class Mode(ABC):
     @abstractmethod
     def check_answer(self, answer):
         self.time_recall_finished = datetime.now()
+        self.answer = answer
         pass
+    def save(self):
+        conn = get_db_conn()
+        query = f"""INSERT INTO memos (session_id,time_memo_started,time_memo_finished,time_recall_started,time_recall_finished,i,mode,question,answer,correct) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?, ? )"""
+        args = (self.seed, int(self.time_memo_started.timestamp()*1000), int(self.time_memo_finished.timestamp()*1000), int(self.time_recall_started.timestamp()*1000), int(self.time_recall_finished.timestamp()*1000), self.i, type(self).__name__, self.get_prompt(), self.answer, self.check_answer(answer))
+        conn.execute(query, args)
+        conn.commit()
+        conn.close()
     def finish_memo(self):
         self.time_memo_finished = datetime.now()
     def start_recall(self):
@@ -78,7 +112,7 @@ class ModeFromCharList(Mode):
     def get_answer(self):
         return self.get_prompt()
     def check_answer(self, answer):
-        super().check_answer(self)
+        super().check_answer(answer)
         answer = sanatize_answer(answer)
         correct = sanatize_answer(self.get_answer())
         if not len(answer) == len(correct):
@@ -135,7 +169,8 @@ def wait_for_any_key():
             old = termios.tcgetattr(fd)
             try:
                 tty.setraw(fd)
-                return sys.stdin.read(1)
+                result = sys.stdin.read(1)
+                return result
             finally:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old)
     getch()
@@ -165,7 +200,9 @@ prompts = {
     "seperator": (rs.all + "\n" + ef.underl + fg(22, 22, 22) + " " * shutil.get_terminal_size().columns + rs.all),
 }
 
+init_db()
 ep = ErasablePrint()
+
 while True:
     print("\n")
     ep.pretty_print(*prompts["start_memo"])
@@ -187,6 +224,7 @@ while True:
         print(prompts["correct"])
     else:
         print(f"{prompts['incorrect']} {diff_answer(generator.get_answer(), answer)}")
+    generator.save()
     print(rs.all)
     print(generator.stats())
     print(prompts["seperator"])
