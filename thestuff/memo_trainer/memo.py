@@ -176,18 +176,31 @@ def wait_for_any_key():
     getch()
 
 
+# https://stackoverflow.com/a/47617607/11110290
+def inline_diff(a, b):
+    matcher = SequenceMatcher(None, a, b)
+    def process_tag(tag, i1, i2, j1, j2):
+        if tag == 'replace':
+            return bg.cyan + '{' + matcher.a[i1:i2] + ' -> ' + matcher.b[j1:j2] + '}' + rs.all
+        if tag == 'delete':
+            return bg.da_red + '{- ' + matcher.a[i1:i2] + '}' + rs.all
+        if tag == 'equal':
+            return bg.green + matcher.a[i1:i2] + rs.all
+        if tag == 'insert':
+            return bg.red + '{+ ' + matcher.b[j1:j2] + '}' + rs.all
+        assert False, "Unknown tag %r"%tag
+    return ''.join(process_tag(*t) for t in matcher.get_opcodes())
+
 def diff_answer(ground_truth, user_answer):
     result = ""
     ground_truth = sanatize_answer(ground_truth)
     user_answer = sanatize_answer(user_answer)
-    matcher = SequenceMatcher(None, ground_truth, user_answer)
-    for opcode, a0, a1, b0, b1 in matcher.get_opcodes():
-        if opcode == "equal":
-            result += ef.bold + ground_truth[a0:a1] + rs.all
-        if opcode == "insert":
-            result += ef.bold + bg.green + user_answer[b0:b1] + rs.all
-        elif opcode == "delete":
-            result += ef.bold + bg.red + ground_truth[a0:a1] + rs.all
+    diff = inline_diff(ground_truth, user_answer)
+    result += f"""
+    {diff}
+    Correct Answer: {ground_truth}
+    Your Answer:    {user_answer}
+    """
     return result
 
 prompts = {
