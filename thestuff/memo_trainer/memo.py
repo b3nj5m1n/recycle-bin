@@ -16,8 +16,9 @@ import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-m", "--mode", required=True, type=str)
-parser.add_argument("-i", "--length-min", required=True, type=int)
-parser.add_argument("-x", "--length-max", required=True, type=int)
+parser.add_argument("--stats", action='store_true', required=False)
+parser.add_argument("-i", "--length-min", required='--stats' not in sys.argv, type=int)
+parser.add_argument("-x", "--length-max", required='--stats' not in sys.argv, type=int)
 parser.add_argument("-d", "--database", required=False, type=str, default='./data.db')
 args = parser.parse_args()
 
@@ -212,6 +213,18 @@ prompts = {
     "incorrect": (rs.all + fg(255, 77, 77) + "Incorrect:\n" + rs.all),
     "seperator": (rs.all + "\n" + ef.underl + fg(22, 22, 22) + " " * shutil.get_terminal_size().columns + rs.all),
 }
+
+if args.stats == True:
+    print("Showing stats.")
+    conn = get_db_conn()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    mode = type(modes[args.mode](0,0)).__name__
+    records = cursor.execute("SELECT * FROM memos WHERE mode = ?", (mode,)).fetchall()
+    for row in records:
+        sim = SequenceMatcher(None, sanatize_answer(row["question"]), sanatize_answer(row["answer"])).ratio()
+        print(sim)
+    exit()
 
 init_db()
 ep = ErasablePrint()

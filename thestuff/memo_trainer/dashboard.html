@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Memo Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js@1.6.2/dist/sql-wasm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartist@0.11.4/dist/chartist.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chartist@0.11.4/dist/chartist.min.css">
+</head>
+
+<body>
+    <div id="charts-container"></div>
+    <div id="input-container">
+        <input type="file" id="file-input" style="display: none;" />
+        <button id="fancy-button" onclick="document.getElementById('file-input').click();">Moin</button>
+    </div>
+</body>
+<script>
+
+    function sanatize_answer(answer) {
+        return String(answer).replace(/\s/g, "");
+    }
+
+    function chart_mode(memos) {
+        console.log(memos)
+        var container = document.createElement("div");
+        container.setAttribute('class', 'chart-container gradient-border')
+        var header = document.createElement("h1");
+        header.innerHTML = memos[0]["title"];
+        var chart_div = document.createElement("div");
+        chart_div.setAttribute('class', 'ct-chart')
+        chart_div.setAttribute('id', memos[0]["title"])
+        container.appendChild(header);
+        container.appendChild(chart_div);
+        document.getElementById("charts-container").appendChild(container);
+        data = memos.filter((memo) => memo["correct"] == 1).map((memo) => {
+            return {
+                x: new Date(memo["date"]),
+                y: memo["memo_time_per_char"] / 1000
+            }
+        })
+        console.log(data)
+        var chart = new Chartist.Line('#' + memos[0]["title"], {
+            series: [
+                {
+                    name: 'memo_time',
+                    data: data
+                },
+            ]
+        }, {
+            axisX: {
+                type: Chartist.FixedScaleAxis,
+                divisor: 5,
+                labelInterpolationFnc: function (value) {
+                    return moment(value).format('MMM D');
+                }
+            },
+            lineSmooth: Chartist.Interpolation.simple({
+                divisor: 2
+            }),
+            showPoint: false,
+        });
+    }
+
+    function change_button_text(file) {
+        if (!file) {
+            document.getElementById('fancy-button').innerHTML = "Select Database";
+            return;
+        }
+        document.getElementById('fancy-button').innerHTML = "Database: " + file.name;
+    }
+    change_button_text();
+    config = {
+        locateFile: filename => `https://cdn.jsdelivr.net/npm/sql.js@1.6.2/dist/${filename}`
+    }
+    initSqlJs(config).then(function (SQL) {
+        document.getElementById('file-input').onchange = (e) => {
+            var file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+            change_button_text(file);
+            const r = new FileReader();
+            r.onload = function () {
+                const Uints = new Uint8Array(r.result);
+                db = new SQL.Database(Uints);
+                var contents = db.exec("SELECT * FROM memos")[0];
+                var result = {};
+                contents["values"].forEach((row) => {
+                    console.log(row[7])
+                    var memo = {};
+                    memo["title"] = row[7];
+                    memo["date"] = row[2];
+                    memo["memo_time"] = row[3] - row[2];
+                    memo["recall_time"] = row[5] - row[4];
+                    memo["total_time"] = row[5] - row[2];
+                    memo["question"] = row[8];
+                    memo["answer"] = sanatize_answer(row[9]);
+                    memo["correct"] = sanatize_answer(row[10]);
+                    memo["memo_time_per_char"] = memo["memo_time"] / memo["answer"].length;
+                    if (!result[row[7]]) {
+                        result[row[7]] = [];
+                    }
+                    result[row[7]].push(memo);
+                })
+                Object.keys(result).forEach((key) => {chart_mode(result[key])})
+            }
+            r.readAsArrayBuffer(file);
+        }
+    });
+</script>
+<style type="text/css" media="all">
+    body {
+        background-color: #141414;
+        color: white;
+        margin: 0;
+        padding: 0;
+    }
+
+    .chart-container {
+        margin: 10%;
+        background-color: #1a1a1a;
+    }
+
+    .chart-container h1 {
+        text-align: center;
+        background-color: #1a1a1a;
+    }
+
+    .ct-chart {
+        background-color: #1a1a1a;
+    }
+
+    .ct-label {
+        color: white;
+    }
+
+    .ct-series-a .ct-line {
+        stroke: #a0ff56;
+    }
+
+    #input-container {
+        width: 100%;
+        bottom: 10px;
+        position: absolute;
+        display: flex;
+        justify-content: center;
+        margin: 2;
+    }
+
+
+    .glow-button {
+        text-decoration: none;
+        color: rgba(255, 255, 255, 0.8);
+        background: rgb(145, 92, 182);
+        padding: 15px 40px;
+        border-radius: 4px;
+        font-weight: normal;
+        text-transform: uppercase;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .glow-button:hover {
+        color: rgba(255, 255, 255, 1);
+        box-shadow: 0 5px 15px rgba(145, 92, 182, .4);
+    }
+
+    .gradient-border {
+        --borderWidth: 3px;
+        background: #1D1F20;
+        position: relative;
+        border-radius: var(--borderWidth);
+    }
+
+    .gradient-border:after {
+        content: '';
+        position: absolute;
+        top: calc(-1 * var(--borderWidth));
+        left: calc(-1 * var(--borderWidth));
+        height: calc(100% + var(--borderWidth) * 2);
+        width: calc(100% + var(--borderWidth) * 2);
+        background: linear-gradient(60deg, #f79533, #f37055, #ef4e7b, #a166ab, #5073b8, #1098ad, #07b39b, #6fba82);
+        border-radius: calc(2 * var(--borderWidth));
+        z-index: -1;
+        animation: animatedgradient 3s ease alternate infinite;
+        background-size: 300% 300%;
+    }
+
+
+    @keyframes animatedgradient {
+        0% {
+            background-position: 0% 50%;
+        }
+
+        50% {
+            background-position: 100% 50%;
+        }
+
+        100% {
+            background-position: 0% 50%;
+        }
+    }
+
+
+    /* From cssbuttons.io by @ShadowShahriar */
+    #fancy-button {
+        --border-radius: 15px;
+        --border-width: 4px;
+        appearance: none;
+        position: relative;
+        padding: 1em 2em;
+        border: 0;
+        background-color: transparent;
+        font-family: "Roboto", Arial, "Segoe UI", sans-serif;
+        font-size: 18px;
+        font-weight: 500;
+        color: #fff;
+        z-index: 2;
+    }
+
+    #fancy-button::after {
+        --m-i: linear-gradient(#000, #000);
+        --m-o: content-box, padding-box;
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        padding: var(--border-width);
+        border-radius: var(--border-radius);
+        background-image: conic-gradient(#488cfb,
+                #29dbbc,
+                #ddf505,
+                #ff9f0e,
+                #e440bb,
+                #655adc,
+                #488cfb);
+        -webkit-mask-image: var(--m-i), var(--m-i);
+        mask-image: var(--m-i), var(--m-i);
+        -webkit-mask-origin: var(--m-o);
+        mask-origin: var(--m-o);
+        -webkit-mask-clip: var(--m-o);
+        mask-composite: exclude;
+        -webkit-mask-composite: destination-out;
+        filter: hue-rotate(0);
+        animation: rotate-hue linear 500ms infinite;
+        animation-play-state: paused;
+    }
+
+    #fancy-button:hover::after {
+        animation-play-state: running;
+    }
+
+    @keyframes rotate-hue {
+        to {
+            filter: hue-rotate(1turn);
+        }
+    }
+
+    #fancy-button,
+    #fancy-button::after {
+        box-sizing: border-box;
+    }
+
+    #fancy-button:active {
+        --border-width: 5px;
+    }
+</style>
+
+</html>
