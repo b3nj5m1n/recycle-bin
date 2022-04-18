@@ -8,6 +8,8 @@
   (fiveam:is (not (valid? (list -1 2 3))))
   (fiveam:is (not (valid? (list 2 2 3))))
   (fiveam:is (not (valid? (list 12 2 3))))
+  (fiveam:is (not (valid? (list nil 2 nil 3 nil 2))))
   (fiveam:is (valid? (list 5 2 3)))
-  (fiveam:is (valid? (list 5 2 3 7 4 1 9 8))))
+  (fiveam:is (valid? (list 5 2 3 7 4 1 9 8)))
+  (fiveam:is (valid? (list 5 nil 3 7 nil 1 9 nil))))
   
