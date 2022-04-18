@@ -1,4 +1,3 @@
-
 (defun indx? (x y)
   "Convert x and y coordinates to index in flattened list
 
@@ -68,7 +67,7 @@
   
 
 (defun choice-valid? (x y grid)
-  "Test wether the number at the given coordinates makes sense
+  "Test whether the number at the given coordinates makes sense
   "
   (let ((quad (indx-quad? x y))
         (row (indx-row? x y))
@@ -82,13 +81,21 @@
              t)))))
 
 (defun init-sudoku (transforms)
+  "Initialize a new sudoku grid
+
+  Provide transformations as arguments in the form as a list of lists
+  containing 3 numbers, the x coordinate, the y coordinate, and the number to
+  put in that cell. The coordinates should be 1 indexed.
+  "
   (let ((sudoku (make-list 81)))
     (loop for transform in transforms
       do (
           setf (nth (indx? (- (first transform) 1) (- (second transform) 1)) sudoku) (third transform)))
    sudoku))
 
-(defun solve-sudoku (grid lol)
+(defun solve-sudoku (grid &optional ( depth 0))
+  "Solve the given sudoku grid
+  "
   (if (not (position nil grid))
     (return-from solve-sudoku grid))
   (defvar result)
@@ -99,16 +106,18 @@
         (loop named theloop for i from 1 to 9
           do (let ((new-grid (copy-list grid)))
                (setf (nth indx new-grid) i)
-               (screen:with-window (screen:clear-window screen:*window*))
-               (print-sudoku new-grid)
+               ; (screen:with-window (screen:clear-window screen:*window*))
+               ; (print-sudoku new-grid)
                ; (format t "~% x = ~d y = ~d i = ~2d ~%" x y i)
-               ; (format t "~% lol = ~d ~%" lol)
+               ; (format t "~% depth = ~d ~%" depth)
                (if (choice-valid? x y new-grid)
-                   (let ((computed (solve-sudoku new-grid (+ lol 1))))
+                   (let ((computed (solve-sudoku new-grid (+ depth 1))))
                        (if computed
                          (return-from solve-sudoku computed)))))))))
 
 (defun print-sudoku (grid)
+  "Pretty print the sudoku grid
+  "
   (let ((g (mapcar (lambda (x) (
                                 if (null x) 
                                  "·"
@@ -134,131 +143,3 @@
   t)
   
 
-(defparameter grid (init-sudoku (list
-                                 (list 1 1 6)
-                                 (list 2 1 1)
-                                 (list 5 1 5)
-                                 (list 6 1 2)
-                                 (list 2 2 7)
-                                 (list 3 2 3)
-                                 (list 5 2 4)
-                                 (list 6 2 6)
-                                 (list 8 2 5)
-                                 (list 9 2 2)
-                                 (list 1 3 4)
-                                 (list 7 3 8)
-                                 (list 8 3 6)
-                                 (list 3 4 6)
-                                 (list 4 4 5)
-                                 (list 8 4 9)
-                                 (list 1 5 9)
-                                 (list 2 5 3)
-                                 (list 8 5 8)
-                                 (list 9 5 5)
-                                 (list 2 6 5)
-                                 (list 6 6 7)
-                                 (list 7 6 1)
-                                 (list 2 7 6)
-                                 (list 3 7 4)
-                                 (list 9 7 8)
-                                 (list 1 8 7)
-                                 (list 2 8 9)
-                                 (list 4 8 3)
-                                 (list 5 8 8)
-                                 (list 7 8 5)
-                                 (list 8 8 1)
-                                 (list 4 9 2)
-                                 (list 5 9 6)
-                                 (list 8 9 4)
-                                 (list 9 9 9))))
-
-(defparameter grid-easy (init-sudoku (list
-                                      ; (list 1 1 8)
-                                      ; (list 2 1 3)
-                                      ; (list 3 1 6)
-                                      (list 4 1 9)
-                                      (list 5 1 2)
-                                      (list 6 1 5)
-                                      (list 7 1 7)
-                                      (list 8 1 4)
-                                      (list 9 1 1)
-
-                                      (list 1 2 2)
-                                      (list 2 2 1)
-                                      (list 3 2 7)
-                                      (list 4 2 8)
-                                      (list 5 2 4)
-                                      (list 6 2 6)
-                                      (list 7 2 9)
-                                      (list 8 2 3)
-                                      (list 9 2 5)
-
-                                      (list 1 3 5)
-                                      (list 2 3 9)
-                                      (list 3 3 4)
-                                      (list 4 3 7)
-                                      (list 5 3 3)
-                                      (list 6 3 1)
-                                      (list 7 3 2)
-                                      (list 8 3 8)
-                                      (list 9 3 6)
-
-                                      (list 1 4 3)
-                                      (list 2 4 5)
-                                      (list 3 4 8)
-                                      (list 4 4 1)
-                                      (list 5 4 7)
-                                      (list 6 4 2)
-                                      (list 7 4 6)
-                                      (list 8 4 9)
-                                      (list 9 4 4)
-
-                                      (list 1 5 1)
-                                      (list 2 5 4)
-                                      (list 3 5 2)
-                                      (list 4 5 6)
-                                      (list 5 5 9)
-                                      (list 6 5 8)
-                                      (list 7 5 5)
-                                      (list 8 5 7)
-                                      (list 9 5 3)
-
-                                      (list 1 6 7)
-                                      (list 2 6 6)
-                                      (list 3 6 9)
-                                      (list 4 6 3)
-                                      (list 5 6 5)
-                                      (list 6 6 4)
-                                      (list 7 6 1)
-                                      (list 8 6 2)
-                                      (list 9 6 8)
-
-                                      (list 1 7 4)
-                                      (list 2 7 7)
-                                      (list 3 7 1)
-                                      (list 4 7 5)
-                                      (list 5 7 8)
-                                      (list 6 7 9)
-                                      (list 7 7 3)
-                                      (list 8 7 6)
-                                      (list 9 7 2)
-
-                                      (list 1 8 6)
-                                      (list 2 8 2)
-                                      (list 3 8 3)
-                                      (list 4 8 4)
-                                      (list 5 8 1)
-                                      (list 6 8 7)
-                                      (list 7 8 8)
-                                      (list 8 8 5)
-                                      (list 9 8 9)
-
-                                      (list 1 9 9)
-                                      (list 2 9 8)
-                                      (list 3 9 5)
-                                      (list 4 9 2)
-                                      (list 5 9 6)
-                                      (list 6 9 3)
-                                      (list 7 9 4)
-                                      (list 8 9 1)
-                                      (list 9 9 7))))
