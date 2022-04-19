@@ -1,4 +1,4 @@
-(load "sudoku")
+(load "sudoku.lsp")
 
 (defparameter grid-impossible (init-sudoku (list
                                             (list 3 1 4)
