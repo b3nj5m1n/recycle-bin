@@ -1,0 +1,3 @@
+[submodule "thestuff/byol/vendor/chalk"]
+	path = thestuff/byol/vendor/chalk
+	url = git@github.com:gomjellie/chalk.c.git
