@@ -1,3 +1,6 @@
 [submodule "thestuff/byol/vendor/chalk"]
 	path = thestuff/byol/vendor/chalk
 	url = git@github.com:gomjellie/chalk.c.git
+[submodule "thestuff/byol/vendor/mpc"]
+	path = thestuff/byol/vendor/mpc
+	url = git@github.com:orangeduck/mpc.git
