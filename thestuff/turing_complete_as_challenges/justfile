@@ -3,17 +3,17 @@
 as filename:
     #!/usr/bin/env sh
     cd "{{invocation_directory()}}"
-    riscv32-none-elf-as -o {{filename}}.o {{filename}}.s
+    riscv64-none-elf-as -o {{filename}}.o {{filename}}.s
 
 ld filename:
     #!/usr/bin/env sh
     cd "{{invocation_directory()}}"
-    riscv32-none-elf-ld -o {{filename}}.out {{filename}}.o
+    riscv64-none-elf-ld -o {{filename}}.out {{filename}}.o
 
 run filename:
     #!/usr/bin/env sh
     cd "{{invocation_directory()}}"
-    qemu-riscv32 {{filename}}.out
+    qemu-riscv64 {{filename}}.out
 
 go filename:
     #!/usr/bin/env sh

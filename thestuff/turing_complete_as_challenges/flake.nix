@@ -11,9 +11,9 @@
           import nixpkgs {
             localSystem = "${system}";
             crossSystem = {
-              config = "riscv32-none-elf";
+              config = "riscv64-none-elf";
               libc = "newlib-nano";
-              abi = "ilp32";
+              abi = "ilp64";
             };
           };
 
