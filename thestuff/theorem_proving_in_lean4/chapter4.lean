@@ -217,18 +217,50 @@ end existential_crisis
 section Exercises1
   variable (α : Type) (p q : α → Prop)
 
-  example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) := sorry
-  example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) := sorry
-  example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x := sorry
+  example : (∀ x, p x ∧ q x) ↔ (∀ x, p x) ∧ (∀ x, q x) :=
+    ⟨
+      λ h : ∀ x, p x ∧ q x =>
+        ⟨λ x => ( h x ).left, λ x => ( h x ).right⟩,
+      λ h : (∀ x, p x) ∧ (∀ x, q x) => λ x =>
+        ⟨h.left x, h.right x⟩
+    ⟩
+  example : (∀ x, p x → q x) → (∀ x, p x) → (∀ x, q x) :=
+    λ h₁ : (∀ x, p x → q x) => λ h₂ : ∀ x, p x => λ x => h₁ x ( h₂ x )
+  example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x :=
+    λ h : (∀ x, p x) ∨ (∀ x, q x) => λ x => h.elim
+      (λ hp : ∀ x, p x => Or.inl ( hp x ))
+      (λ hq : ∀ x, q x => Or.inr ( hq x ))
 end Exercises1
 
 section Exercises2
   variable (α : Type) (p q : α → Prop)
   variable (r : Prop)
 
-  example : α → ((∀ x : α, r) ↔ r) := sorry
-  example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r := sorry
-  example : (∀ x, r → p x) ↔ (r → ∀ x, p x) := sorry
+  example : α → ((∀ x : α, r) ↔ r) := λ a : α =>
+    ⟨
+      λ h : ∀ _ : α, r => h a,
+      λ h : r => λ _ => h,
+    ⟩
+  example : (∀ x, p x ∨ r) ↔ (∀ x, p x) ∨ r :=
+    ⟨
+      λ h : ∀ x, p x ∨ r => Classical.byContradiction
+        (λ h₁ : ¬ ( (∀ x, p x) ∨ r ) =>
+          have h₂ : ¬ (∀ x, p x) ∧ ¬ r := not_or.mp h₁
+          have ⟨e, h₃⟩ : ∃ e, ¬ p e := Classical.not_forall.mp h₂.left
+          have h₄ : p e ∨ r := h e
+          have h₅ : ¬ r := h₂.right
+          show False from h₄.elim (λ h₆ : p e => h₃ h₆) (λ h₇ : r => h₅ h₇)
+        )
+        ,
+      λ h : (∀ x, p x) ∨ r => h.elim
+        (λ hp : ∀ x, p x => λ x => Or.inl (hp x))
+        (λ hr : r => λ _ => Or.inr hr)
+    ⟩
+  example : (∀ x, r → p x) ↔ (r → ∀ x, p x) :=
+    ⟨
+      λ h : ∀ x, r → p x => λ r : r => λ x => h x r,
+      λ h : r → ∀ x, p x => λ x => λ r => h r x
+    ⟩
 end Exercises2
 
 section Exercises3
@@ -236,7 +268,9 @@ section Exercises3
   variable (shaves : men → men → Prop)
 
   example (h : ∀ x : men, shaves barber x ↔ ¬ shaves x x) : False :=
+    -- (h barber).mpr
     sorry
+
 end Exercises3
 
 section Exercises4
