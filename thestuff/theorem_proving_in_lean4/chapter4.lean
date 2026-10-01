@@ -183,7 +183,7 @@ section existential_crisis
 
   open Classical
 
-  example : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) :=
+  theorem doineedtousethis : (∀ x, p x) ↔ ¬ (∃ x, ¬ p x) :=
     ⟨
       λ h : ∀ x, p x => byContradiction
         (λ h₁ : ¬ ¬ (∃ x, ¬ p x) =>
@@ -206,12 +206,61 @@ section existential_crisis
            h₁ ⟨x, h₂⟩
          )),
     ⟩
-  example : (¬ ∃ x, p x) ↔ (∀ x, ¬ p x) := sorry
-  example : (¬ ∀ x, p x) ↔ (∃ x, ¬ p x) := sorry
+  example : (¬ ∃ x, p x) ↔ (∀ x, ¬ p x) :=
+    ⟨
+      λ h : ¬ ∃ x, p x => λ x => byContradiction (λ hnnpx : ¬ ¬ p x =>
+        have hpx : p x := not_not.mp hnnpx
+        h ⟨x, hpx⟩),
+      λ h : ∀ x, ¬ p x => byContradiction (λ hnn : ¬ ¬ ∃ x, p x =>
+        have ⟨e, he⟩ : ∃ x, p x := not_not.mp hnn
+        show False from ( h e ) he
+      )
+    ⟩
+  example : (¬ ∀ x, p x) ↔ (∃ x, ¬ p x) :=
+    ⟨
+      λ h : ¬ ∀ x, p x => byContradiction (λ hn : ¬ (∃ x, ¬ p x) =>
+        have c : ∀ x, p x := ( @doineedtousethis α p ).mpr hn
+        show False from h c
+      ),
+      λ ( ⟨e, h⟩ : ∃ x, ¬ p x ) => λ hpx : ∀ x, p x =>
+        have pe : p e := hpx e
+        show False from h pe
+    ⟩
 
-  example : (∀ x, p x → r) ↔ (∃ x, p x) → r := sorry
-  example (a : α) : (∃ x, p x → r) ↔ (∀ x, p x) → r := sorry
-  example (a : α) : (∃ x, r → p x) ↔ (r → ∃ x, p x) := sorry
+  example : (∀ x, p x → r) ↔ (∃ x, p x) → r :=
+    ⟨
+      λ h : ∀ x, p x → r => λ (⟨e, he⟩ : ∃ x, p x) => ( h e ) he,
+      λ h : (∃ x, p x) → r => λ x =>
+        λ hpx : p x => h ⟨x, hpx⟩
+    ⟩
+  example (a : α) : (∃ x, p x → r) ↔ (∀ x, p x) → r :=
+    ⟨
+      λ ( ⟨e, h⟩ : ∃ x, p x → r ) => λ hfa : ∀ x, p x =>
+        have pe : p e := hfa e
+        show r from h pe
+      ,
+      -- λ h₁ : (∀ x, p x) → r => byContradiction (λ h₂ : ¬ (∃ x, p x → r) =>
+      --   sorry
+      -- )
+      λ h₁ : (∀ x, p x) → r =>
+        ⟨a, λ h₂ : p a => byContradiction (λ h₃ : ¬ r =>
+          _
+        )⟩
+    ⟩
+  example (a : α) : (∃ x, r → p x) ↔ (r → ∃ x, p x) :=
+    ⟨
+      λ (⟨e, h⟩ : ∃ x, r → p x) => λ r =>
+        have h₂ : p e := h r
+        ⟨e, h₂⟩,
+      λ h : r → ∃ x, p x => byCases
+        (λ hr : r =>
+          have ⟨e, h₂⟩ : ∃ e, p e := h hr
+          ⟨e, λ r => h₂⟩
+        )
+        (λ hnr : ¬r =>
+          ⟨a, λ r => absurd r hnr⟩
+        )
+    ⟩
 end existential_crisis
 
 section Exercises1
